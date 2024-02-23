@@ -1,0 +1,40 @@
+{
+    "version": 6,
+    "configurePresets": [
+      {
+        "name": "default",
+        "hidden": true,
+        "binaryDir": "build/${presetName}"
+      },
+      {
+        "name": "debug",
+        "displayName": "Debug",
+        "inherits": "default",
+        "cacheVariables": {
+          "CMAKE_BUILD_TYPE": "Debug"
+        }
+      },
+      {
+        "name": "release",
+        "displayName": "Release",
+        "inherits": "default",
+        "cacheVariables": {
+          "CMAKE_BUILD_TYPE": "Release"
+        }
+      }
+    ],
+    "buildPresets": [
+      {
+        "name": "all-debug",
+        "displayName": "Debug Build",
+        "configurePreset": "debug",
+        "configuration": "Debug"
+      },
+      {
+        "name": "all-release",
+        "displayName": "Release Build",
+        "configurePreset": "release",
+        "configuration": "Release"
+      }
+    ]
+  }
