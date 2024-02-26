@@ -494,7 +494,6 @@ GDL90CRCResult GDL90CRC_isValid(GDL90CRC *, uint8_t *data, size_t len);
 
 typedef enum GDL90StreamProcessingError
 {
-    GDL90StreamProcessingErrorNone,
     GDL90StreamProcessingErrorCRCError,
     GDL90StreamProcessingErrorInvalidMessage,
     GDL90StreamProcessingErrorUnknownMessageType,

@@ -71,8 +71,11 @@ static void handleGDL90Error(GDL90Message *gdl90Message, GDL90StreamProcessingEr
         case GDL90StreamProcessingErrorCRCError:
             printf("CRC error processing message with id %d\n", gdl90Message->id);
             break;
+        case GDL90StreamProcessingErrorInvalidMessage:
+            printf("Invalid message with id %d\n", gdl90Message->id);
+            break;
         case GDL90StreamProcessingErrorUnknownMessageType:
-            printf("Unknown message id : 0x%02x\n", gdl90Message->id);
+            printf("Unknown message id : %d\n", gdl90Message->id);
             break;
         default:
             printf("Error : %d.\n", error);
@@ -91,8 +94,8 @@ int main(int argc, char *argv[])
     GDL90Stream gdl90Stream = {0};
     GDL90Stream_init(&gdl90Stream, &gdl90StreamConfig);
 
-    const size_t maxPacketSize = 1024;
-    size_t packetLength = 0;
+    const uint16_t maxPacketSize = 1024;
+    uint16_t packetLength = 0;
     uint8_t packet[maxPacketSize] = {0};
 
     char *buf = NULL;
@@ -104,7 +107,7 @@ int main(int argc, char *argv[])
         packetLength = 0;
         for (ssize_t i=0; i < nread; i++)
         {
-            uint8_t c = buf[i+0];
+            uint8_t c = (uint8_t)buf[i+0];
 
             if (c >= '0' && c <= '9')
             {
@@ -121,7 +124,7 @@ int main(int argc, char *argv[])
 
             if (i % 2 == 0)
             {
-                packet[packetLength] = c << 4;
+                packet[packetLength] = (uint8_t)(c << 4);
             }
             else
             {

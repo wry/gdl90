@@ -5,13 +5,18 @@ set(CMAKE_VERBOSE_MAKEFILE "ON")
 
 add_executable(gdl90-wasm)
 
-target_link_libraries(gdl90-wasm
-  PRIVATE
-    gdl90
+set_target_properties(gdl90-wasm
+  PROPERTIES
+    CXX_STANDARD 11
+    CXX_STANDARD_REQUIRED ON
 )
 target_sources(gdl90-wasm
   PRIVATE
     src/gdl90-wasm.cpp
+)
+target_link_libraries(gdl90-wasm
+  PRIVATE
+    gdl90
 )
 target_include_directories(gdl90-wasm
   PUBLIC

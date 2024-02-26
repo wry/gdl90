@@ -40,7 +40,7 @@ static inline int32_t msbi24i32(uint8_t b0, uint8_t b1, uint8_t b2)
     uint32_t ret = msbu24u32(b0, b1, b2);
     if (ret & (1<<23))
     {
-        ret |= 0xff<<24;
+        ret |= (uint32_t)0xff<<24;
     }
     return (int32_t)ret;
 }
@@ -49,11 +49,11 @@ static inline uint16_t msbu12u16(uint8_t b0, uint8_t b1, uint8_t firstByteComple
 {
     if (firstByteComplete)
     {
-        return ((uint32_t)b0 << 4) | ((uint32_t)b1 >> 4);
+        return (uint16_t)((uint16_t)b0 << 4) | ((uint16_t)b1 >> 4);
     }
     else
     {
-        return (((uint32_t)b0 & 0x0f) << 8) | (uint32_t)b1;
+        return (uint16_t)(((uint16_t)b0 & 0x0f) << 8) | (uint16_t)b1;
     }
 }
 
@@ -62,7 +62,7 @@ static inline int16_t msbi12i16(uint8_t b0, uint8_t b1, uint8_t firstByteComplet
     uint16_t ret = msbu12u16(b0, b1, firstByteComplete);
     if (ret & (1<<11))
     {
-        ret |= 0xf<<12;
+        ret |= (uint16_t)0xf<<12;
     }
     return (int16_t)ret;
 }
@@ -72,7 +72,7 @@ static inline int32_t msbi16i32(uint8_t b0, uint8_t b1)
     uint32_t ret = ((uint32_t)b0 << 8) | (uint32_t)b1;
     if (ret & (1<<15))
     {
-        ret |= 0xffff<<16;
+        ret |= (uint32_t)0xffff<<16;
     }
     return (int32_t)ret;
 }
@@ -104,7 +104,7 @@ GDL90Result GDL90Heartbeat_init(GDL90Heartbeat *self, GDL90Message *gdl90Message
     self->status2 = data[2];
     self->timestamp = ((uint32_t)(data[2] >> 7) << 16) | ((uint32_t)data[4] << 8) | data[3];
     self->uplinkMessageCount = (uint8_t)(data[5] >> 3);
-    self->basicLongMessageCount = ((uint16_t)(data[5] & 0x03) << 8) | (uint16_t)data[6];
+    self->basicLongMessageCount = (uint16_t)((uint16_t)(data[5] & 0x03) << 8) | (uint16_t)data[6];
 
     return GDL90ResultOK;
 }
@@ -294,7 +294,7 @@ GDL90Result GDL90OwnshipGeometricAltitude_init(GDL90OwnshipGeometricAltitude *se
     }
     else
     {
-        self->verticalFigureOfMerit = (((uint16_t)data[3] & 0x7f) << 8) | (uint16_t)data[4];
+        self->verticalFigureOfMerit = (uint16_t)(((uint16_t)data[3] & 0x7f) << 8) | (uint16_t)data[4];
         self->hasValidVFOM = 1;
     }
 
@@ -520,7 +520,7 @@ GDL90Result GDL90TrafficReport_init(GDL90TrafficReport *self, GDL90Message *gdl9
 {
     if (!self || !gdl90Message || gdl90Message->dataLength < 28) { return GDL90ResultFailure; }
 
-    static const double latlonRes = 180.0f / (double)(1<<23);
+    static const double latlonRes = 180.0 / (double)(1<<23);
 
     uint8_t *data = &gdl90Message->data[0];
 
@@ -528,8 +528,8 @@ GDL90Result GDL90TrafficReport_init(GDL90TrafficReport *self, GDL90Message *gdl9
     self->alertStatus = (data[1] >> 4);
     self->addressType = (data[1] & 0x0f);
     self->participantAddress = msbu24u32(data[2], data[3], data[4]);
-    self->latitude = (double)msbi24i32(data[5], data[6], data[7]) * latlonRes;
-    self->longitude = (double)msbi24i32(data[8], data[9], data[10]) * latlonRes;
+    self->latitude = msbi24i32(data[5], data[6], data[7]) * latlonRes;
+    self->longitude = msbi24i32(data[8], data[9], data[10]) * latlonRes;
     if (data[11] == 0xff && (data[12] & 0xf0) == 0xf0)
     {
         self->altitude = 0;
@@ -595,7 +595,7 @@ GDL90Result GDL90TrafficReport_init(GDL90TrafficReport *self, GDL90Message *gdl9
         {
             break;
         }
-        self->callsign[i] = data[i+19];
+        self->callsign[i] = (char)data[i+19];
     }
     self->emergencyPriorityCode = data[27] >> 4;
     self->spare = data[27] & 0x0f;
@@ -656,7 +656,7 @@ char* GDL90TrafficReport_toString(GDL90TrafficReport *self, char *out, size_t le
         , self->trackHeading
         , GDL90TrafficReportEmitterCategory_toString(self->emitterCategory)
         , self->callsign[0] == 0 ? "(unknown)" : self->callsign
-        , GDL90TrafficReportEmergencyPriorityCodeType_toString(self->emergencyPriorityCode)
+        , GDL90TrafficReportEmergencyPriorityCodeType_toString((GDL90TrafficReportEmergencyPriorityCodeType)self->emergencyPriorityCode)
         , self->spare
     );
 
@@ -756,10 +756,10 @@ GDL90Result GDL90CRC_init(GDL90CRC *self)
     uint16_t i, bitctr, crc;
     for (i = 0; i < 256; i++)
     {
-        crc = (i << 8);
+        crc = (uint16_t)(i << 8);
         for (bitctr = 0; bitctr < 8; bitctr++)
         {
-            crc = (crc << 1) ^ ((crc & 0x8000) ? 0x1021 : 0);
+            crc = (uint16_t)(crc << 1) ^ ((crc & 0x8000) ? 0x1021 : 0);
         }
         self->crc16Table[i] = crc;
     }
@@ -775,7 +775,7 @@ GDL90Result GDL90CRC_crc(GDL90CRC *self, uint16_t *outCrc, uint8_t *data, size_t
     uint16_t crc = 0;
     for (i = 0; i < len; i++)
     {
-        crc = self->crc16Table[crc >> 8] ^ (crc << 8) ^ data[i];
+        crc = self->crc16Table[crc >> 8] ^ (uint16_t)(crc << 8) ^ data[i];
     }
 
     *outCrc = crc;
@@ -787,7 +787,7 @@ GDL90CRCResult GDL90CRC_isValid(GDL90CRC *self, uint8_t *data, size_t len)
 {
     if (!self || !data) { return GDL90CRCResultInvalidInput; }
 
-    uint16_t crcInData = (((uint16_t)data[len-1]) << 8) | (uint16_t)data[len-2];
+    uint16_t crcInData = (uint16_t)(((uint16_t)data[len-1]) << 8) | (uint16_t)data[len-2];
     uint16_t crcCalculated = 0;
     
     if (GDL90CRC_crc(self, &crcCalculated, data, len-2) != GDL90ResultOK)
@@ -828,7 +828,7 @@ GDL90Result GDL90Stream_process(GDL90Stream *self, const uint8_t *data, const ui
     if (!self || !data || !self->config.errorHandler || !self->config.messageHandler) { return GDL90ResultFailure; }
 
     size_t curMessageOffset = 0;
-    size_t curMessageLength = 1;
+    uint16_t curMessageLength = 1;
     for (size_t i = 0; i < dataLength; i++)
     {
         if (data[i] == GDL90_FLAGBYTE && i > 0 && curMessageLength > 1)
