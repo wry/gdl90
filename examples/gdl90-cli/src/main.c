@@ -29,7 +29,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define MAX_PACKET_SIZE 1024
+
 static char textbuf[1024] = {0};
+
+uint16_t getPacketFromHexStr(char *buf, uint16_t buflen, uint8_t packet[MAX_PACKET_SIZE]);
 
 static void handleGDL90Message(GDL90Message *gdl90Message, void *message)
 {
@@ -77,73 +81,83 @@ static void handleGDL90Error(GDL90Message *gdl90Message, GDL90StreamProcessingEr
         case GDL90StreamProcessingErrorUnknownMessageType:
             printf("Unknown message id : %d\n", gdl90Message->id);
             break;
-        default:
-            printf("Error : %d.\n", error);
-            break;
     }
+}
+
+uint16_t getPacketFromHexStr(char *buf, uint16_t buflen, uint8_t packet[MAX_PACKET_SIZE])
+{
+    uint16_t packetLength = 0;
+    for (uint16_t i=0; i < buflen; i++)
+    {
+        uint8_t c = (uint8_t)buf[i+0];
+
+        if (c >= '0' && c <= '9')
+        {
+            c -= '0';
+        }
+        else if (c >= 'a' && c <= 'f')
+        {
+            c -= 'a'-0xa;
+        }
+        else
+        {
+            continue;
+        }
+
+        if (i % 2 == 0)
+        {
+            packet[packetLength] = (uint8_t)(c << 4);
+        }
+        else
+        {
+            packet[packetLength++] |= c;
+        }
+
+        if (packetLength == MAX_PACKET_SIZE)
+        {
+            break;
+        }
+    }
+    return packetLength;
 }
 
 int main(int argc, char *argv[])
 {
-    (void)argc;
-    (void)argv;
-
     GDL90StreamConfig gdl90StreamConfig = {0};
-    GDL90StreamConfig_init(&gdl90StreamConfig, handleGDL90Message, handleGDL90Error);
-
     GDL90Stream gdl90Stream = {0};
+
+    uint16_t packetLength = 0;
+    uint8_t packet[MAX_PACKET_SIZE] = {0};
+
+    GDL90StreamConfig_init(&gdl90StreamConfig, handleGDL90Message, handleGDL90Error);
     GDL90Stream_init(&gdl90Stream, &gdl90StreamConfig);
 
-    const uint16_t maxPacketSize = 1024;
-    uint16_t packetLength = 0;
-    uint8_t packet[maxPacketSize] = {0};
-
-    char *buf = NULL;
-    size_t buflen = 0;
-
-    ssize_t nread;
-    while ((nread = getline(&buf, &buflen, stdin)) != -1)
+    if (argc > 1)
     {
-        packetLength = 0;
-        for (ssize_t i=0; i < nread; i++)
-        {
-            uint8_t c = (uint8_t)buf[i+0];
-
-            if (c >= '0' && c <= '9')
-            {
-                c -= '0';
-            }
-            else if (c >= 'a' && c <= 'f')
-            {
-                c -= 'a'-0xa;
-            }
-            else
-            {
-                continue;
-            }
-
-            if (i % 2 == 0)
-            {
-                packet[packetLength] = (uint8_t)(c << 4);
-            }
-            else
-            {
-                packet[packetLength++] |= c;
-            }
-
-            if (packetLength == maxPacketSize)
-            {
-                break;
-            }
-        }
-
-        if (packet[0] == 0x7e && packet[packetLength-1] == 0x7e)
+        packetLength = getPacketFromHexStr(argv[1], (uint16_t)strlen(argv[1]), packet);
+        if (packetLength && packet[0] == 0x7e && packet[packetLength-1] == 0x7e)
         {
             GDL90Stream_process(&gdl90Stream, packet, packetLength);
         }
     }
-    free(buf);
-    buf = NULL;
+#ifndef _WIN32
+    else
+    {
+        char* buf = NULL;
+        size_t buflen = 0;
+        ssize_t nread = 0;
+        while ((nread = getline(&buf, (size_t*)&buflen, stdin)) > 3)
+        {
+            packetLength = getPacketFromHexStr(buf, (uint16_t)nread, packet);
+            if (packetLength && packet[0] == 0x7e && packet[packetLength-1] == 0x7e)
+            {
+                GDL90Stream_process(&gdl90Stream, packet, packetLength);
+            }
+        }
+        free(buf);
+        buf = NULL;
+    }
+#endif
 
     return EXIT_SUCCESS;
 }
