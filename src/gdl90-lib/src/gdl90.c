@@ -785,7 +785,7 @@ GDL90Result GDL90CRC_crc(GDL90CRC *self, uint16_t *outCrc, uint8_t *data, size_t
 
 GDL90CRCResult GDL90CRC_isValid(GDL90CRC *self, uint8_t *data, size_t len)
 {
-    if (!self || !data) { return GDL90CRCResultInvalidInput; }
+    if (!self || !data || len < 3) { return GDL90CRCResultInvalidInput; }
 
     uint16_t crcInData = (uint16_t)(((uint16_t)data[len-1]) << 8) | (uint16_t)data[len-2];
     uint16_t crcCalculated = 0;
