@@ -133,11 +133,11 @@ char* GDL90Heartbeat_toString(GDL90Heartbeat *self, char *out, size_t len)
         , self->id
         , (self->status1 & (1<<GDL90HeartbeatStatusByte1BitUATInitialized)) ? "yes" : "no"
         , (self->status1 & (1<<GDL90HeartbeatStatusByte1BitRATCS)) ? "enabled" : "disabled"
-        , (self->status1 & (1<<GDL90HeartbeatStatusByte1BitGSPBattLow)) ? "yes" : "no"
+        , (self->status1 & (1<<GDL90HeartbeatStatusByte1BitGPSBattLow)) ? "yes" : "no"
         , (self->status1 & (1<<GDL90HeartbeatStatusByte1BitAddrType)) ? "anonymous" : "set/unknown"
         , (self->status1 & (1<<GDL90HeartbeatStatusByte1BitIDENT)) ? "yes" : "no"
         , (self->status1 & (1<<GDL90HeartbeatStatusByte1BitMaintReqd)) ? "yes" : "no"
-        , (self->status1 & (1<<GDL90HeartbeatStatusByte1BitGSPPosValid)) ? "yes" : "no"
+        , (self->status1 & (1<<GDL90HeartbeatStatusByte1BitGPSPosValid)) ? "yes" : "no"
         , (self->status1 & (1<<GDL90HeartbeatStatusByte2BitUTCOK)) ? "yes" : "no"
         , (self->status1 & (1<<GDL90HeartbeatStatusByte2BitCSANotAvailable)) ? "true" : "false"
         , (self->status1 & (1<<GDL90HeartbeatStatusByte2BitCSARequested)) ? "yes" : "no"

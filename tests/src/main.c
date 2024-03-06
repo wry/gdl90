@@ -32,31 +32,64 @@
 
 // https://www.faa.gov/sites/faa.gov/files/air_traffic/technology/adsb/archival/GDL90_Public_ICD_RevA.PDF
 
-#define UpdateGDL90TRBytes(I,B0,B1) do { \
-    gdl90Message.data[I+0] = B0; \
-    gdl90Message.data[I+1] = B1; \
-    GDL90TrafficReport_init(&gdl90TrafficReport, &gdl90Message); \
+#define UpdateGDL90Bytes2(CLASS,INSTANCE,IDX,B0,B1) do {\
+    gdl90Message.data[IDX+0] = B0; \
+    gdl90Message.data[IDX+1] = B1; \
+    assert(CLASS ## _init(&INSTANCE, &gdl90Message) == GDL90ResultOK); \
 } while(0)
 
-#define UpdateGDL90GeoAltBytes(I,B0,B1) do { \
-    gdl90Message.data[I+0] = B0; \
-    gdl90Message.data[I+1] = B1; \
-    GDL90OwnshipGeometricAltitude_init(&gdl90OwnshipGeometricAltitude, &gdl90Message); \
-} while(0)
-
-#define UpdateGDL90HATBytes(I,B0,B1) do { \
-    gdl90Message.data[I+0] = B0; \
-    gdl90Message.data[I+1] = B1; \
-    GDL90HeightAboveTerrain_init(&gdl90HeightAboveTerrain, &gdl90Message); \
+#define UpdateGDL90Bytes3(CLASS,INSTANCE,IDX,B0,B1,B2) do {\
+    gdl90Message.data[IDX+0] = B0; \
+    gdl90Message.data[IDX+1] = B1; \
+    gdl90Message.data[IDX+2] = B2; \
+    assert(CLASS ## _init(&INSTANCE, &gdl90Message) == GDL90ResultOK); \
 } while(0)
 
 static void testGDL90Heartbeat(void)
 {
+    // 3.1. HEARTBEAT MESSAGE
 
+    uint8_t data[] = {
+        // GDL90 Flag
+        0x7e,
+        // GDL90Message ID
+        0x00,
+        // Status Byte 1, Bit 7: GPS Pos Valid, Bit 3: GPS Batt Low 
+        ((1<<7) | (1<<3)),
+        // Status Byte 2, Bit 7: Time Stamp (MS bit), Bit 0: UTC OK
+        ((1<<7) | (1<<0)),
+        // Time Stamp
+        0x0f, 0xff,
+        // Message Counts
+        0x01, 0xff,
+        // GDL90CRC (fake)
+        0x00, 0x00,
+        // GDL90 Flag
+        0x7e
+    };
+
+    GDL90Message gdl90Message = {0};
+    assert(GDL90Message_init(&gdl90Message, data, sizeof(data)) == GDL90ResultOK);
+
+    GDL90Heartbeat gdl90Heartbeat = {0};
+    assert(GDL90Heartbeat_init(&gdl90Heartbeat, &gdl90Message) == GDL90ResultOK);
+    
+    // 3.1.1. Status Byte 1, Bit 7: GPS Pos Valid, Bit 3: GPS Batt Low 
+    assert(gdl90Heartbeat.status1 & (1<<GDL90HeartbeatStatusByte1BitGPSBattLow));
+    assert(gdl90Heartbeat.status1 & (1<<GDL90HeartbeatStatusByte1BitGPSPosValid));
+
+    // 3.1.2. Status Byte 2, Bit 0: UTC OK 
+    assert(gdl90Heartbeat.status2 & (1<<GDL90HeartbeatStatusByte2BitUTCOK));
+
+    // 3.1.3. UAT Time Stamp 
+
+    // 3.1.4. Received Message Counts 
 }
 
 static void testGDL90Initialization(void)
 {
+    // 3.2. INITIALIZATION MESSAGE
+
     GDL90Initialization gdl90Initialization = {0};
 
     gdl90Initialization.configuration1 |= 1<<GDL90InitializationConfiguration1BitCDTIOK;
@@ -79,12 +112,45 @@ static void testGDL90Initialization(void)
 
 static void testGDL90UplinkData(void)
 {
+    // 3.3. UPLINK DATA MESSAGE
 
+    uint8_t data[436+4] = {0};
+
+    // GDL90 Flag
+    data[0] = 0x7e;
+    // GDL90Message ID
+    data[1] = 0x07;
+    // Time of Reception
+    data[2] = 0x00;
+    data[3] = 0x00;
+    data[4] = 0x00;
+    // Uplink Payload
+    // ...
+    // GDL90CRC (fake)
+    data[437] = 0x00;
+    data[438] = 0x00;
+    // GDL90 Flag
+    data[439] = 0x7e;
+
+    GDL90Message gdl90Message = {0};
+    assert(GDL90Message_init(&gdl90Message, data, sizeof(data)) == GDL90ResultOK);
+
+    GDL90UplinkData gdl90UplinkData = {0};
+    assert(GDL90UplinkData_init(&gdl90UplinkData, &gdl90Message) == GDL90ResultOK);
+
+    // 3.3.1. Time of Reception (TOR)
+
+    // A TOR of "all ONES" (0xFFFFFF, or 16,777,21510) indicates that the TOR value is not valid
+    UpdateGDL90Bytes3(GDL90UplinkData, gdl90UplinkData, 1, 0xff, 0xff, 0xff);
+    assert(!gdl90UplinkData.hasValidTor);
+
+    // 3.3.2. Uplink Payload (not implemented; needs RTCA/DO-282)
 }
 
 static void testGDL90HeightAboveTerrain(void)
 {
-    // GDL90 560-1058-00 Rev A - 3.7. HEIGHT ABOVE TERRAIN (Example)
+    // 3.7. HEIGHT ABOVE TERRAIN (Example)
+
     uint8_t data[] = {
         // GDL90 Flag
         0x7e,
@@ -99,16 +165,16 @@ static void testGDL90HeightAboveTerrain(void)
     };
 
     GDL90Message gdl90Message = {0};
-    GDL90Message_init(&gdl90Message, data, sizeof(data));
+    assert(GDL90Message_init(&gdl90Message, data, sizeof(data)) == GDL90ResultOK);
 
     GDL90HeightAboveTerrain gdl90HeightAboveTerrain = {0};
-    GDL90HeightAboveTerrain_init(&gdl90HeightAboveTerrain, &gdl90Message);
+    assert(GDL90HeightAboveTerrain_init(&gdl90HeightAboveTerrain, &gdl90Message) == GDL90ResultOK);
 
     // If Byte 2 is 0x01, and Byte 3 is 0x00, this represents a Height Above Terrain of 256 feet.
     assert(gdl90HeightAboveTerrain.heightAboveTerrain == 256);
     
     // Special Value: The value 0x8000 indicates that the Height Above Terrain data is invalid.
-    UpdateGDL90HATBytes(1, 0x80, 0x00);
+    UpdateGDL90Bytes2(GDL90HeightAboveTerrain, gdl90HeightAboveTerrain, 1, 0x80, 0x00);
     assert(gdl90HeightAboveTerrain.heightAboveTerrain == -32768);
 }
 
@@ -130,44 +196,44 @@ static void testGDL90OwnshipGeometricAltitude(void)
     };
 
     GDL90Message gdl90Message = {0};
-    GDL90Message_init(&gdl90Message, data, sizeof(data));
+    assert(GDL90Message_init(&gdl90Message, data, sizeof(data)) == GDL90ResultOK);
 
     GDL90OwnshipGeometricAltitude gdl90OwnshipGeometricAltitude = {0};
-    GDL90OwnshipGeometricAltitude_init(&gdl90OwnshipGeometricAltitude, &gdl90Message);
+    assert(GDL90OwnshipGeometricAltitude_init(&gdl90OwnshipGeometricAltitude, &gdl90Message) == GDL90ResultOK);
 
     // Geo Altitude: 
     // -1,000 feet 0xFF38
-    UpdateGDL90GeoAltBytes(1, 0xff, 0x38);
+    UpdateGDL90Bytes2(GDL90OwnshipGeometricAltitude, gdl90OwnshipGeometricAltitude, 1, 0xff, 0x38);
     assert(gdl90OwnshipGeometricAltitude.geoAltitude == -1000);
     // 0 feet 0x0000
-    UpdateGDL90GeoAltBytes(1, 0x00, 0x00);
+    UpdateGDL90Bytes2(GDL90OwnshipGeometricAltitude, gdl90OwnshipGeometricAltitude, 1, 0x00, 0x00);
     assert(gdl90OwnshipGeometricAltitude.geoAltitude == 0);
     // +1000 feet 0x00C8
-    UpdateGDL90GeoAltBytes(1, 0x00, 0xc8);
+    UpdateGDL90Bytes2(GDL90OwnshipGeometricAltitude, gdl90OwnshipGeometricAltitude, 1, 0x00, 0xc8);
     assert(gdl90OwnshipGeometricAltitude.geoAltitude == 1000);
 
     // Vertical Metrics:
 
     // Value 0x7FFF is reserved to indicate that VFOM is not available.
-    UpdateGDL90GeoAltBytes(3, 0x7f, 0xff);
+    UpdateGDL90Bytes2(GDL90OwnshipGeometricAltitude, gdl90OwnshipGeometricAltitude, 3, 0x7f, 0xff);
     assert(gdl90OwnshipGeometricAltitude.hasValidVFOM == 0);
 
     // Examples of Vertical Metrics values: 
 
     // Vertical Warning and VFOM not available: 0xFFFF
-    UpdateGDL90GeoAltBytes(3, 0xff, 0xff);
+    UpdateGDL90Bytes2(GDL90OwnshipGeometricAltitude, gdl90OwnshipGeometricAltitude, 3, 0xff, 0xff);
     assert(gdl90OwnshipGeometricAltitude.verticalWarning == 1);
     assert(gdl90OwnshipGeometricAltitude.hasValidVFOM == 0);
     // No Vertical Warning, VFOM = 40,000 meters 0x7FFE (max value represantable is 32,766)
-    UpdateGDL90GeoAltBytes(3, 0x7f, 0xfe);
+    UpdateGDL90Bytes2(GDL90OwnshipGeometricAltitude, gdl90OwnshipGeometricAltitude, 3, 0x7f, 0xfe);
     assert(gdl90OwnshipGeometricAltitude.verticalWarning == 0);
     assert(gdl90OwnshipGeometricAltitude.verticalFigureOfMerit == 32766);
     // No Vertical Warning, VFOM = 10 meters 0x000A
-    UpdateGDL90GeoAltBytes(3, 0x00, 0x0a);
+    UpdateGDL90Bytes2(GDL90OwnshipGeometricAltitude, gdl90OwnshipGeometricAltitude, 3, 0x00, 0x0a);
     assert(gdl90OwnshipGeometricAltitude.verticalWarning == 0);
     assert(gdl90OwnshipGeometricAltitude.verticalFigureOfMerit == 10);
     // Vertical Warning, VFOM = 50 meters 0x8032
-    UpdateGDL90GeoAltBytes(3, 0x80, 0x32);
+    UpdateGDL90Bytes2(GDL90OwnshipGeometricAltitude, gdl90OwnshipGeometricAltitude, 3, 0x80, 0x32);
     assert(gdl90OwnshipGeometricAltitude.verticalWarning == 1);
     assert(gdl90OwnshipGeometricAltitude.verticalFigureOfMerit == 50);
 }
@@ -192,10 +258,10 @@ static void testGDL90TrafficReport(void)
     };
 
     GDL90Message gdl90Message = {0};
-    GDL90Message_init(&gdl90Message, data, sizeof(data));
+    assert(GDL90Message_init(&gdl90Message, data, sizeof(data)) == GDL90ResultOK);
 
     GDL90TrafficReport gdl90TrafficReport = {0};
-    GDL90TrafficReport_init(&gdl90TrafficReport, &gdl90Message);
+    assert(GDL90TrafficReport_init(&gdl90TrafficReport, &gdl90Message) == GDL90ResultOK);
     
     // No Traffic Alert
     assert(gdl90TrafficReport.alertStatus == GDL90TrafficReportAlertStatusTypeNoAlert);
@@ -227,49 +293,49 @@ static void testGDL90TrafficReport(void)
     // 3.5.1.7 HORIZONTAL VELOCITY
 
     // 0xFFE = 4094
-    UpdateGDL90TRBytes(14, 0xff, 0xe0);
+    UpdateGDL90Bytes2(GDL90TrafficReport, gdl90TrafficReport, 14, 0xff, 0xe0);
     assert(gdl90TrafficReport.horizontalVelocity == 4094);
 
     // 3.5.1.8 VERTICAL VELOCITY
 
     // 0 = 0 FPM
-    UpdateGDL90TRBytes(15, 0x00, 0x00);
+    UpdateGDL90Bytes2(GDL90TrafficReport, gdl90TrafficReport, 15, 0x00, 0x00);
     assert(gdl90TrafficReport.verticalVelocity == 0);
     // 0x001 = 64 FPM climb
-    UpdateGDL90TRBytes(15, 0x00, 0x01);
+    UpdateGDL90Bytes2(GDL90TrafficReport, gdl90TrafficReport, 15, 0x00, 0x01);
     assert(gdl90TrafficReport.verticalVelocity == 64);
     // 0xFFF = 64 FPM descend
-    UpdateGDL90TRBytes(15, 0x0f, 0xff);
+    UpdateGDL90Bytes2(GDL90TrafficReport, gdl90TrafficReport, 15, 0x0f, 0xff);
     assert(gdl90TrafficReport.verticalVelocity == -64);
     // 0x1FD = 32,576 FPM climb
-    UpdateGDL90TRBytes(15, 0x01, 0xfd);
+    UpdateGDL90Bytes2(GDL90TrafficReport, gdl90TrafficReport, 15, 0x01, 0xfd);
     assert(gdl90TrafficReport.verticalVelocity == 32576);
     // 0x1FE = > 32,576 climb
-    UpdateGDL90TRBytes(15, 0x01, 0xfe);
+    UpdateGDL90Bytes2(GDL90TrafficReport, gdl90TrafficReport, 15, 0x01, 0xfe);
     assert(gdl90TrafficReport.verticalVelocity == 32640);
     // 0xE03 = 32,576 FPM descend
-    UpdateGDL90TRBytes(15, 0x0e, 0x03);
+    UpdateGDL90Bytes2(GDL90TrafficReport, gdl90TrafficReport, 15, 0x0e, 0x03);
     assert(gdl90TrafficReport.verticalVelocity == -32576);
     // 0xE02 = > 32.576 FPM descend
-    UpdateGDL90TRBytes(15, 0x0e, 0x02);
+    UpdateGDL90Bytes2(GDL90TrafficReport, gdl90TrafficReport, 15, 0x0e, 0x02);
     assert(gdl90TrafficReport.verticalVelocity == -32640);
     // 0x800 = no vertical rate available
-    UpdateGDL90TRBytes(15, 0x08, 0x00);
+    UpdateGDL90Bytes2(GDL90TrafficReport, gdl90TrafficReport, 15, 0x08, 0x00);
     assert(gdl90TrafficReport.hasValidVerticalVelocity == 0);
 
     // 3.5.1.4 ALTITUDE
 
     // -1,000 feet 0x000
-    UpdateGDL90TRBytes(11, 0x00, 0x00);
+    UpdateGDL90Bytes2(GDL90TrafficReport, gdl90TrafficReport, 11, 0x00, 0x00);
     assert(gdl90TrafficReport.altitude == -1000);
     // 0 feet 0x028
-    UpdateGDL90TRBytes(11, 0x02, 0x80);
+    UpdateGDL90Bytes2(GDL90TrafficReport, gdl90TrafficReport, 11, 0x02, 0x80);
     assert(gdl90TrafficReport.altitude == 0);
     // +1000 feet 0x050
-    UpdateGDL90TRBytes(11, 0x05, 0x00);
+    UpdateGDL90Bytes2(GDL90TrafficReport, gdl90TrafficReport, 11, 0x05, 0x00);
     assert(gdl90TrafficReport.altitude == 1000);
     // +101,350 feet 0xFFE
-    UpdateGDL90TRBytes(11, 0xff, 0xe0);
+    UpdateGDL90Bytes2(GDL90TrafficReport, gdl90TrafficReport, 11, 0xff, 0xe0);
     assert(gdl90TrafficReport.altitude == 101350);
 }
 

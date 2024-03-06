@@ -85,7 +85,7 @@ typedef enum GDL90HeartbeatStatusByte1Bit
     /** Bit 2: RATCS */
     GDL90HeartbeatStatusByte1BitRATCS = 1,
     /** Bit 3: GPS Batt Low */
-    GDL90HeartbeatStatusByte1BitGSPBattLow = 3,
+    GDL90HeartbeatStatusByte1BitGPSBattLow = 3,
     /** Bit 4: Addr Type */
     GDL90HeartbeatStatusByte1BitAddrType = 4,
     /** Bit 5: IDENT */
@@ -93,7 +93,7 @@ typedef enum GDL90HeartbeatStatusByte1Bit
     /** Bit 6: Maint Req'd */
     GDL90HeartbeatStatusByte1BitMaintReqd = 6,
     /** Bit 7: GPS Pos Valid */
-    GDL90HeartbeatStatusByte1BitGSPPosValid = 7
+    GDL90HeartbeatStatusByte1BitGPSPosValid = 7
 } GDL90HeartbeatStatusByte1Bit;
 
 typedef enum GDL90HeartbeatStatusByte2Bit
