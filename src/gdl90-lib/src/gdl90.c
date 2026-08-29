@@ -621,7 +621,7 @@ char* GDL90TrafficReport_toString(GDL90TrafficReport *self, char *out, size_t le
         ".id : %d\n"
         ".alertStatus : %s\n"
         ".addressType : %s\n"
-        ".participantAddress : %o\n"
+        ".participantAddress : 0x%06x\n"
         ".latitude : %f\n"
         ".longitude : %f\n"
         ".altitude : %d\n"
