@@ -569,12 +569,12 @@ GDL90Result GDL90TrafficReport_init(GDL90TrafficReport *self, GDL90Message *gdl9
     if (data[14] == 0xff && (data[15] & 0xf0) == 0x00)
     {
         self->horizontalVelocity = 0;
-        self->hasValidAltitude = 0;
+        self->hasValidHorizontalVelocity = 0;
     }
     else
     {
         self->horizontalVelocity = (uint32_t)msbu12u16(data[14], data[15], 1);
-        self->hasValidAltitude = 1;
+        self->hasValidHorizontalVelocity = 1;
     }
     if ((data[15] & 0x0f) == 0x08 && data[16] == 0x00)
     {
