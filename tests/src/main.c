@@ -272,6 +272,7 @@ static void testGDL90TrafficReport(void)
     // // Longitude: -122.99488 (West)
     assert((int32_t)gdl90TrafficReport.longitude == -122);
     // // Altitude: 5,000 feet (pressure altitude)
+    assert(gdl90TrafficReport.hasValidAltitude);
     assert(gdl90TrafficReport.altitude == 5000);
     // // Airborne with True Track
     assert(gdl90TrafficReport.airGroundState == 1);
@@ -279,6 +280,7 @@ static void testGDL90TrafficReport(void)
     // // HPL = 20 meters, HFOM = 25 meters (NIC = 10, NACp = 9)
     assert(gdl90TrafficReport.navigationIntegrityCategory == GDL90TrafficReportNICTypeHPL_LT25M_VPL_LT_37p5M);
     // // Horizontal velocity: 123 knots at 45 degrees (True Track)
+    assert(gdl90TrafficReport.hasValidHorizontalVelocity);
     assert(gdl90TrafficReport.horizontalVelocity == 123);
     assert((int32_t)gdl90TrafficReport.trackHeading == 45);
     // // Vertical velocity: 64 FPM climb
